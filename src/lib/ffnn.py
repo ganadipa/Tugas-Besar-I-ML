@@ -1,17 +1,22 @@
-from nueral import NeuralNetwork,NetworkLayer
+from lib.neural import NeuralNetwork, NetworkLayer
+from typing import List
 
 class FFNN:
     
     network: NeuralNetwork
     learning_rate: float
 
-    def __init__(self,):
+    def __init__(self, network: NeuralNetwork, learning_rate: float):
         """TODO: implement CLI to input all Neural Network parameters:
             - weight initialization method
             - node counts
             - activation functions
             - loss function
+
+            Uhm I think this must be done in the client
         """
+        self.network = network
+        self.learning_rate = learning_rate
 
     def forward_prop(self, ):
         """TODO: implement forward prop by updating:
