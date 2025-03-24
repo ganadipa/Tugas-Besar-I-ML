@@ -1,50 +1,46 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
+EPSILON = 1e-15
 
 class Loss(ABC):
-    """Base class for loss functions"""
     @abstractmethod
-    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
         raise NotImplementedError
     
     @abstractmethod
-    def error(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+    def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
 
 class MSE(Loss):
-    """Mean Squared Error loss"""
-    def __init__(self) -> None:
-        pass
-
-    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        return 0.5 * np.mean((y_true - y_pred) ** 2)
+    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
+        return np.mean(np.sum((y_true - y_pred) ** 2, axis=0))
     
-    def error(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        return self.function(y_true, y_pred)
+    def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
+        return (-2/batch_size) * (y_true - y_pred)
 
 
 class BCE(Loss):
-    """Binary Cross-Entropy loss"""
-    def __init__(self) -> None:
-        pass
-
-    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
-    
-    def error(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        return self.function(y_true, y_pred)
-
-
-class CCE:
-    """Categorical Cross-Entropy loss"""
-    def __init__(self):
-        pass
-
     def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
-        loss = -np.sum(y_true * np.log(y_pred)) / y_true.shape[0]
-        return loss
+        y_pred = np.clip(y_pred, EPSILON, 1.0 - EPSILON)
+        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
+        return -np.sum(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred)) / batch_size
     
-    def error(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:        
-        return self.function(y_true, y_pred)
+    def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        y_pred = np.clip(y_pred, EPSILON, 1.0 - EPSILON)
+        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
+        return (-1/batch_size) * (y_true / y_pred - (1 - y_true) / (1 - y_pred))
+
+
+class CCE(Loss):
+    def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
+        y_pred = np.clip(y_pred, EPSILON, 1.0)
+        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
+        return -np.sum(y_true * np.log(y_pred)) / batch_size
+    
+    def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
+        y_pred = np.clip(y_pred, EPSILON, 1.0)
+        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
+        return (-1/batch_size) * (y_true / y_pred)

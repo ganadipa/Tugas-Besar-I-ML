@@ -5,7 +5,8 @@ import time
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import pickle
-from lib.loss import Loss, MSE
+from lib.loss import Loss, MSE, BCE, CCE
+from lib.activation import Sigmoid, Softmax
 
 class FFNN:
     
@@ -45,6 +46,7 @@ class FFNN:
         # Ensure x_batch is 2D
         if x_batch.ndim == 1:
             x_batch = x_batch.reshape(1, -1)
+        
             
         batch_size = x_batch.shape[0]
         
@@ -52,7 +54,7 @@ class FFNN:
         self.network.layers[0].nodes = x_batch.T  # Transpose to (features, batch_size)
         self.network.layers[0].activated_nodes = self.network.layers[0].nodes  # No activation for input layer
         
-        # Forward pass through each layer
+        # Forward pass through each layer   
         for i in range(1, len(self.network.layers)):
             current_layer = self.network.layers[i]
             prev_layer = self.network.layers[i-1]
@@ -126,14 +128,10 @@ class FFNN:
         # Calculate loss
         loss = self.network.loss_function.function(y_batch_T, output_activations)
         
-        # Calculate output layer error based on the loss function
-        # For MSE: delta = (output - target) * activation_derivative
-        # For BCE/CCE: delta has different formulations
-        if isinstance(self.network.loss_function, MSE):
-            delta = (output_activations - y_batch_T) * output_layer.activation.derivative(output_layer.nodes)
-        else:
-            # For cross-entropy with softmax, the delta is simplified
-            delta = output_activations - y_batch_T
+        # Calculate output layer error based on the loss function and activation
+        d_loss = self.network.loss_function.derivative(y_batch_T, output_activations)
+        d_activation = output_layer.activation.derivative(output_layer.nodes)
+        delta = d_loss * d_activation
         
         # Backpropagate the error through the network
         for l in reversed(range(1, len(self.network.layers))):

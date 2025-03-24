@@ -23,7 +23,7 @@ class NetworkLayer:
             node_count: Number of nodes in this layer
             activation: Activation function for this layer
         """
-        self.activation = None if activation is None else activation()
+        self.activation = activation
         self.nodes = np.zeros(node_count)
         self.activated_nodes = np.zeros(node_count)
 
