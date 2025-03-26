@@ -3,7 +3,7 @@ import lib.activation as act
 import lib.loss as loss
 from lib.weight_initializer import WeightInitializer
 import random
-from typing import List
+from typing import List, Union
 import pickle
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -39,12 +39,12 @@ class NeuralNetwork:
     bias_gradients: List[np.ndarray] # 2D array
 
     def __init__(
-        self, 
-        node_counts: List[int],
-        activations: List[act.Activation],
-        loss_function: loss.Loss,
-        initialize_method: WeightInitializer # TODO: jadiin list (beda per layer)
-    ):
+            self, 
+            node_counts: List[int],
+            activations: List[act.Activation],
+            loss_function: loss.Loss,
+            initialize_methods: Union[WeightInitializer, List[WeightInitializer]]
+        ):
         if len(activations) != len(node_counts) - 1:
             raise Exception("Error: tried to declare NeuralNetwork with wrong amount of activation functions.")
         
@@ -60,9 +60,17 @@ class NeuralNetwork:
             for cnt, activation in zip(node_counts, activations)
         ]
 
-        self.initialize_weights(initialize_method)
+        # Convert single initializer to list if needed
+        if not isinstance(initialize_methods, list):
+            initialize_methods = [initialize_methods] * (len(node_counts) - 1)
+        
+        # Ensure we have the right number of initializers
+        if len(initialize_methods) != len(node_counts) - 1:
+            raise Exception("Error: number of weight initializers must match number of connections between layers.")
+            
+        self.initialize_weights(initialize_methods)
     
-    def initialize_weights(self, initializer: WeightInitializer):
+    def initialize_weights(self, initializers: List[WeightInitializer]):
         self.weights = []        
         self.gradients = []
         self.bias_weights = []  
@@ -72,6 +80,7 @@ class NeuralNetwork:
             next_layer_size = len(self.layers[i + 1].nodes)
             current_layer_size = len(self.layers[i].nodes)
             
+            initializer = initializers[i]
             weight_matrix = initializer.initialize((next_layer_size, current_layer_size))
             self.weights.append(weight_matrix)
             
@@ -81,7 +90,7 @@ class NeuralNetwork:
             self.gradients.append(np.zeros_like(weight_matrix))
             self.bias_gradients.append(np.zeros_like(bias_weights))  
 
-    def show(self): # TODO: add weights (and gradients) display
+    def show(self):
         """Display the neural network architecture as a graph.
         
         This method visualizes the network structure, including all layers,
@@ -134,6 +143,18 @@ class NeuralNetwork:
         # Draw edge labels (optional, can be messy for large networks)
         if len(self.layers) < 4 and max([len(l.nodes) for l in self.layers]) < 8:
             nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+        
+        # Add bias weights visualization
+        for layer_idx in range(len(self.layers) - 1):
+            for next_idx in range(len(self.layers[layer_idx + 1].nodes)):
+                next_node = f"L{layer_idx + 1}_{next_idx}"
+                bias_value = self.bias_weights[layer_idx][next_idx]
+                bias_gradient = self.bias_gradients[layer_idx][next_idx]
+                
+                # Add a small text annotation for bias
+                x, y = pos[next_node]
+                plt.text(x - 0.1, y + 0.2, f"B: {bias_value:.2f}\nBG: {bias_gradient:.2f}", 
+                        fontsize=8, bbox=dict(facecolor='yellow', alpha=0.2))
         
         plt.title('Neural Network Architecture')
         plt.axis('off')

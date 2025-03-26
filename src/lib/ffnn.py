@@ -134,7 +134,7 @@ class FFNN:
             # d_activation will be (output_sz, output_sz, batch_sz)
             # d_loss shape: (output_sz, batch_sz)
             # Expected output delta: (output_sz, batch_sz)
-            
+
             output_sz, batch_sz = d_loss.shape
             delta = np.zeros((output_sz, batch_sz))
             
