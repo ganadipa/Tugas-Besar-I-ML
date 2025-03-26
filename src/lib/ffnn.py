@@ -11,10 +11,9 @@ from lib.activation import Sigmoid, Softmax
 class FFNN:
     
     network: NeuralNetwork
-    learning_rate: float
     loss_history: Dict[str, List[float]]
 
-    def __init__(self, network: NeuralNetwork, learning_rate: float = 0.01):
+    def __init__(self, network: NeuralNetwork):
         """Initialize a Feed-Forward Neural Network.
         
         Args:
@@ -22,7 +21,6 @@ class FFNN:
             learning_rate: Learning rate for gradient descent
         """
         self.network = network
-        self.learning_rate = learning_rate
         self.loss_history = {
             'train_loss': [],
             'val_loss': []
@@ -128,10 +126,10 @@ class FFNN:
         # Calculate loss
         loss = self.network.loss_function.function(y_batch_T, output_activations)
         
-        # Calculate output layer error based on the loss function and activation
         d_loss = self.network.loss_function.derivative(y_batch_T, output_activations)
         d_activation = output_layer.activation.derivative(output_layer.nodes)
-        delta = d_loss * d_activation
+
+        delta = d_loss * d_activation if d_loss.shape == d_activation.shape else d_activation @ d_loss
         
         # Backpropagate the error through the network
         for l in reversed(range(1, len(self.network.layers))):
@@ -143,7 +141,7 @@ class FFNN:
             # prev_activations shape: (prev_layer_size, batch_size)
             # gradient shape: (current_layer_size, prev_layer_size)
             self.network.gradients[l-1] = np.dot(delta, prev_layer.activated_nodes.T) / batch_size
-            
+
             # Compute bias gradients (average across batch)
             self.network.bias_gradients[l-1] = np.mean(delta, axis=1)
             
@@ -158,7 +156,7 @@ class FFNN:
         
         return loss
     
-    def update_weights(self) -> None:
+    def update_weights(self, learning_rate) -> None:
         """Update weights using gradient descent.
         
         Example:
@@ -170,8 +168,8 @@ class FFNN:
             # w_new = w_old - learning_rate * gradient
         """
         for i in range(len(self.network.weights)):
-            self.network.weights[i] -= self.learning_rate * self.network.gradients[i]
-            self.network.bias_weights[i] -= self.learning_rate * self.network.bias_gradients[i]
+            self.network.weights[i] -= learning_rate * self.network.gradients[i]
+            self.network.bias_weights[i] -= learning_rate * self.network.bias_gradients[i]
     
     def fit(self, 
         x_train: np.ndarray, 
@@ -179,6 +177,7 @@ class FFNN:
         batch_size: int = 32,
         epochs: int = 10,
         validation_data: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+        learning_rate: float = 0.01,
         verbose: int = 1
     ) -> Dict[str, List[float]]:
         """Train the neural network using batched gradient descent.
@@ -269,7 +268,7 @@ class FFNN:
                 batch_loss = self.back_prop(batch_x, batch_y)
                 
                 # Update weights
-                self.update_weights()
+                self.update_weights(learning_rate)
                 
                 # Update epoch loss (weighted by batch size)
                 batch_weight = (end_idx - start_idx) / num_samples

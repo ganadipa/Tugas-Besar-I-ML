@@ -1,13 +1,19 @@
-import numpy as np
 import os
 import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from lib.activation import Tanh, Linear, ReLU, Sigmoid, Softmax
-from lib.loss import CCE
+import lib.activation
+import lib.ffnn
+import lib.neural
+import lib.loss
+import lib.weight_initializer
 
-from lib.weight_initializer import ZeroInitializer, UniformInitializer, NormalInitializer
-from lib.neural import NeuralNetwork
-
-initializer = NormalInitializer(seed=42)
-print(initializer.initialize((3)))
+sigma = lib.activation.Sigmoid()
+nn = lib.neural.NeuralNetwork(
+    [5, 3, 2, 1],
+    [sigma] * 3,
+    lib.loss.MSE(),
+    lib.weight_initializer.NormalInitializer(1, 0.1, 13522022)
+)
+nn.plot_gradients(layer_indices=[0,2])

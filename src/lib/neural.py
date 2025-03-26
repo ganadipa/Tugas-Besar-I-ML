@@ -43,7 +43,7 @@ class NeuralNetwork:
         node_counts: List[int],
         activations: List[act.Activation],
         loss_function: loss.Loss,
-        initialize_method: WeightInitializer
+        initialize_method: WeightInitializer # TODO: jadiin list (beda per layer)
     ):
         if len(activations) != len(node_counts) - 1:
             raise Exception("Error: tried to declare NeuralNetwork with wrong amount of activation functions.")
@@ -81,7 +81,7 @@ class NeuralNetwork:
             self.gradients.append(np.zeros_like(weight_matrix))
             self.bias_gradients.append(np.zeros_like(bias_weights))  
 
-    def show(self):
+    def show(self): # TODO: add weights (and gradients) display
         """Display the neural network architecture as a graph.
         
         This method visualizes the network structure, including all layers,
