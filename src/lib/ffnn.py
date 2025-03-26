@@ -130,7 +130,7 @@ class FFNN:
         d_activation = output_layer.activation.derivative(output_layer.nodes)
 
 
-        if (d_activation.shape[0] == d_activation.shape[1]):
+        if (d_activation.ndim == 3): # softmax yea
             # d_activation will be (output_sz, output_sz, batch_sz)
             # d_loss shape: (output_sz, batch_sz)
             # Expected output delta: (output_sz, batch_sz)
@@ -169,7 +169,23 @@ class FFNN:
                 # weights shape: (current_layer_size, prev_layer_size)
                 # new delta shape: (prev_layer_size, batch_size)
                 delta = np.dot(self.network.weights[l-1].T, delta)
-                delta *= prev_layer.activation.derivative(prev_layer.nodes)
+                d_actprev = prev_layer.activation.derivative(prev_layer.nodes)
+                
+                if d_actprev.ndim == 2 :
+                    delta *= d_actprev
+                
+                else: # softmax yea
+
+                    prev_sz = prev_layer.nodes.shape[0]
+                    newdelta = np.zeros((prev_sz, batch_sz))
+                    
+                    for i in range(batch_sz):
+                        # For each sample in the batch
+                        # d_activation[:,:,i] is the Jacobian matrix (output_sz, output_sz)
+                        # d_loss[:,i] is the loss gradient vector (output_sz,)
+                        newdelta[:,i] = np.dot(d_actprev[:,:,i], delta[:,i])
+
+                    delta = newdelta
         
         return loss
     
