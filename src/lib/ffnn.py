@@ -18,7 +18,7 @@ class FFNN:
         
         Args:
             network: The neural network architecture
-            learning_rate: Learning rate for gradient descent
+            loss_history: Dictionary to store training and validation loss
         """
         self.network = network
         self.loss_history = {
@@ -67,10 +67,15 @@ class FFNN:
             
             # Store pre-activation values
             current_layer.nodes = weighted_sum
-            
+          
             # Apply activation function
             if current_layer.activation is not None:
+                # If activation is a class (not an instance), instantiate it
+                if isinstance(current_layer.activation, type):  
+                    current_layer.activation = current_layer.activation()  
+
                 current_layer.activated_nodes = current_layer.activation.function(weighted_sum)
+                
             else:
                 current_layer.activated_nodes = weighted_sum
         
