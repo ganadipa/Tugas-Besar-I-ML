@@ -129,7 +129,24 @@ class FFNN:
         d_loss = self.network.loss_function.derivative(y_batch_T, output_activations)
         d_activation = output_layer.activation.derivative(output_layer.nodes)
 
-        delta = d_loss * d_activation if d_loss.shape == d_activation.shape else d_activation @ d_loss
+
+        if (d_activation.shape[0] == d_activation.shape[1]):
+            # d_activation will be (output_sz, output_sz, batch_sz)
+            # d_loss shape: (output_sz, batch_sz)
+            # Expected output delta: (output_sz, batch_sz)
+            
+            output_sz, batch_sz = d_loss.shape
+            delta = np.zeros((output_sz, batch_sz))
+            
+            for i in range(batch_sz):
+                # For each sample in the batch
+                # d_activation[:,:,i] is the Jacobian matrix (output_sz, output_sz)
+                # d_loss[:,i] is the loss gradient vector (output_sz,)
+                delta[:,i] = np.dot(d_activation[:,:,i], d_loss[:,i])
+    
+        else: 
+            delta = d_loss * d_activation
+
         
         # Backpropagate the error through the network
         for l in reversed(range(1, len(self.network.layers))):

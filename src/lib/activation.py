@@ -72,10 +72,17 @@ class Softmax(Activation):
         return exp_x / np.sum(exp_x, axis=0, keepdims=True)
     
     def derivative(self, x: np.ndarray) -> np.ndarray:
-        softmax_output = self.function(x)
-        s = softmax_output.reshape(-1, 1)
-        ret = np.diagflat(s) - np.dot(s, s.T)
-        return ret
+        softmax_output = self.function(x)  
+        
+        output_sz, batch_sz = softmax_output.shape
+        
+        result = np.zeros((output_sz, output_sz, batch_sz))
+        
+        for i in range(batch_sz):
+            s = softmax_output[:, i]
+            result[:, :, i] = np.diag(s) - np.outer(s, s)
+        
+        return result
 
 class CustomActivation(Activation):
     """Custom activation function"""
