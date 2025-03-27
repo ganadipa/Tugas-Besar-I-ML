@@ -1,12 +1,12 @@
-from lib.neural import NeuralNetwork, NetworkLayer
+from lib.neural import NeuralNetwork
 from typing import List, Dict, Optional, Tuple
 import numpy as np
 import time
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import pickle
-from lib.loss import Loss, MSE, BCE, CCE
-from lib.activation import Sigmoid, Softmax
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
+from sklearn.preprocessing import label_binarize
 
 class FFNN:
     
@@ -291,7 +291,6 @@ class FFNN:
         return self.forward_prop(x)
 
 
-    # TODO: Implement the evaluate method
     def evaluate(self, x: np.ndarray, y: np.ndarray) -> float:
         """Evaluate the model on test data.
         
@@ -342,22 +341,21 @@ class FFNN:
         self.network.neural_plot_networks()
     
 
-    def plot_weights(self, layer_indices=None) -> None:
+    def plot_weights(self, layer_indices=None, title="Weight Distribution") -> None:
         """Plot the weights of the neural network.
 
         Args:
             layer_indices: List of layer indices to plot weights
         """
-        self.network.neural_plot_weights(layer_indices=layer_indices)    
+        self.network.neural_plot_weights(layer_indices=layer_indices, title=title)    
 
-    def plot_gradients(self, layer_indices=None) -> None:
+    def plot_gradients(self, layer_indices=None, title="Gradient Distribution") -> None:
         """Plot the gradients of the neural network.
 
         Args:
             layer_indices: List of layer indices to plot gradients
         """
-        self.network.neural_plot_gradients(layer_indices=layer_indices)  
-
+        self.network.neural_plot_gradients(layer_indices=layer_indices, title=title)  
     
 
     def plot_loss_history(self) -> None:
@@ -380,3 +378,74 @@ class FFNN:
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
         plt.show()
+
+
+# Standalone Utility Functions
+def evaluate_model(model, X, y_onehot) -> None:
+    """Evaluate model performance and print summary metrics.
+    
+    Args:
+        model: Trained model
+        X: Input data of shape (n_samples, n_features)
+        y_onehot: One-hot encoded target data of shape (n_samples, n_classes)
+    """
+    y_pred = model.predict(X)
+    predicted_classes = np.argmax(y_pred, axis=1)
+    true_classes = np.argmax(y_onehot, axis=1)
+    
+    accuracy = accuracy_score(true_classes, predicted_classes)
+    precision = precision_score(true_classes, predicted_classes, average='macro')
+    recall = recall_score(true_classes, predicted_classes, average='macro')
+    f1 = f1_score(true_classes, predicted_classes, average='macro')
+
+    print(f"\n----- Model Performance Summary -----")
+    print(f"{'Metric':<20} {'Value':<10}")
+    print("-" * 30)
+    print(f"{'Accuracy':<20} {accuracy:.10f}")
+    print(f"{'Precision (macro)':<20} {precision:.10f}")
+    print(f"{'Recall (macro)':<20} {recall:.10f}")
+    print(f"{'F1 Score (macro)':<20} {f1:.10f}")
+    print("-" * 30)
+
+
+def plot_training_loss(history: Dict[str, List[float]], title: str = "Training History") -> None:
+    """Plot training and validation loss history.
+    
+    Args:
+        history: Dictionary containing 'train_loss' and 'val_loss'
+        title: Title of the plot
+    """
+    plt.figure(figsize=(10, 5))
+    plt.plot(history['train_loss'], label='Training Loss')
+    if 'val_loss' in history and history['val_loss']:
+        plt.plot(history['val_loss'], label='Validation Loss')
+    plt.title(title)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.show()
+
+
+def plot_confusion_matrix(model, X, y_onehot):
+    """Plot confusion matrix for a single model."""
+    y_true = np.argmax(y_onehot, axis=1)
+    y_pred = np.argmax(model.predict(X), axis=1)
+    cm = confusion_matrix(y_true, y_pred)
+
+    title = f"{model.__class__.__name__} Confusion Matrix"
+
+    plt.figure(figsize=(8, 6))
+    plt.imshow(cm, interpolation='nearest', cmap='Blues')
+    plt.title(title, fontsize=15)
+    plt.colorbar()
+    plt.xlabel('Predicted Label', fontsize=12)
+    plt.ylabel('True Label', fontsize=12)
+
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            plt.text(j, i, cm[i, j], ha="center", va="center",
+                     color="white" if cm[i, j] > cm.max()/2 else "black")
+
+    plt.tight_layout()
+    plt.show()

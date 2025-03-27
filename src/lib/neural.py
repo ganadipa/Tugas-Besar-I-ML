@@ -203,7 +203,7 @@ class NeuralNetwork:
         fig.show()
     
 
-    def neural_plot_weights(self, layer_indices=None):
+    def neural_plot_weights(self, layer_indices=None, title="Weight Distribution"):
         """Plot the distribution of weights for specified layers (starting from 1)."""
         
         if layer_indices is None:
@@ -212,6 +212,7 @@ class NeuralNetwork:
         n_layers = len(layer_indices)
         fig, axes = plt.subplots(1, n_layers, figsize=(n_layers * 4, 4))
         
+        # Ensure axes is always a list
         if n_layers == 1:
             axes = [axes]
         
@@ -221,8 +222,16 @@ class NeuralNetwork:
                 continue
 
             weights = self.weights[layer_idx - 1].flatten()  # Adjust for 1-based index
-            axes[i].hist(weights, bins=30, alpha=0.7)
-            axes[i].set_title(f"Layer {layer_idx} Weights")  # Keep 1-based index in title
+            
+            # Manual binning
+            min_val = weights.min()
+            max_val = weights.max()
+            
+            # Create custom bin edges to handle small ranges
+            bin_edges = np.linspace(min_val, max_val, 20)
+            
+            axes[i].hist(weights, bins=bin_edges, alpha=0.7, edgecolor='black')
+            axes[i].set_title(f"Layer {layer_idx} {title}")
             axes[i].set_xlabel("Weight Value")
             axes[i].set_ylabel("Frequency")
             axes[i].grid(alpha=0.3)
@@ -231,7 +240,7 @@ class NeuralNetwork:
         plt.show()
 
 
-    def neural_plot_gradients(self, layer_indices=None):
+    def neural_plot_gradients(self, layer_indices=None, title="Gradient Distribution"):
         """Plot the distribution of gradients for specified layers (starting from 1)."""
         
         if layer_indices is None:
@@ -240,6 +249,7 @@ class NeuralNetwork:
         n_layers = len(layer_indices)
         fig, axes = plt.subplots(1, n_layers, figsize=(n_layers * 4, 4))
         
+        # Ensure axes is always a list
         if n_layers == 1:
             axes = [axes]
         
@@ -249,8 +259,16 @@ class NeuralNetwork:
                 continue
 
             gradients = self.gradients[layer_idx - 1].flatten()  # Adjust for 1-based index
-            axes[i].hist(gradients, bins=30, alpha=0.7)
-            axes[i].set_title(f"Layer {layer_idx} Gradients")  # Keep 1-based index in title
+            
+            # Manual binning
+            min_val = gradients.min()
+            max_val = gradients.max()
+            
+            # Create custom bin edges to handle small ranges
+            bin_edges = np.linspace(min_val, max_val, 20)
+            
+            axes[i].hist(gradients, bins=bin_edges, alpha=0.7, edgecolor='black')
+            axes[i].set_title(f"Layer {layer_idx} {title}")
             axes[i].set_xlabel("Gradient Value")
             axes[i].set_ylabel("Frequency")
             axes[i].grid(alpha=0.3)
