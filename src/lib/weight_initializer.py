@@ -1,19 +1,13 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-
+# file: weight_initializer.py
 class WeightInitializer(ABC):
     """Abstract base class for neural network weight initialization."""
     
     @abstractmethod
     def initialize(self, shape):
-        """
-        Initialize weights according to a specific distribution.
-        
-        Args:
-            shape (tuple): Shape of the weight matrix/tensor to initialize.
-        """
-        pass
+        raise NotImplementedError
 
 
 class ZeroInitializer(WeightInitializer):
