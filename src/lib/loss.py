@@ -18,9 +18,7 @@ class MSE(Loss):
         return np.mean(np.sum((y_true - y_pred) ** 2, axis=0))
     
     def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
-        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
-        return (-2/batch_size) * (y_true - y_pred)
-
+        return -2 * (y_true - y_pred)
 
 class BCE(Loss):
     def function(self, y_true: np.ndarray, y_pred: np.ndarray) -> float:
@@ -30,8 +28,7 @@ class BCE(Loss):
     
     def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         y_pred = np.clip(y_pred, EPSILON, 1.0 - EPSILON)
-        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
-        return (-1/batch_size) * (y_true / y_pred - (1 - y_true) / (1 - y_pred))
+        return -(y_true / y_pred - (1 - y_true) / (1 - y_pred))
 
 
 class CCE(Loss):
@@ -42,5 +39,4 @@ class CCE(Loss):
     
     def derivative(self, y_true: np.ndarray, y_pred: np.ndarray) -> np.ndarray:
         y_pred = np.clip(y_pred, EPSILON, 1.0)
-        batch_size = y_true.shape[1] if y_true.ndim > 1 else 1
-        return (-1/batch_size) * (y_true / y_pred)
+        return -y_true / y_pred

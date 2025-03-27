@@ -99,3 +99,34 @@ class CustomActivation(Activation):
         # TODO: AldyPy
         pass
 
+class ELU(Activation):
+    """Exponential Linear Unit: f(x) = x if x > 0 else alpha * (exp(x) - 1)"""
+    
+    def __init__(self, alpha=1.0) -> None:
+        self.alpha = alpha
+
+    def function(self, x: np.ndarray) -> np.ndarray:
+        # Apply clipping to prevent overflow
+        x_safe = np.clip(x, -500, 500)
+        return np.where(x_safe > 0, x_safe, self.alpha * (np.exp(x_safe) - 1))
+    
+    def derivative(self, x: np.ndarray) -> np.ndarray:
+        x_safe = np.clip(x, -500, 500)
+        return np.where(x_safe > 0, 1, self.alpha * np.exp(x_safe))
+
+
+class GELU(Activation):    
+    def __init__(self) -> None:
+        pass
+
+    def function(self, x: np.ndarray) -> np.ndarray:
+        return 0.5 * x * (1 + np.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * x**3)))
+    
+    def derivative(self, x: np.ndarray) -> np.ndarray:
+        sqrt_2_over_pi = np.sqrt(2 / np.pi)
+        tanh_term = np.tanh(sqrt_2_over_pi * (x + 0.044715 * x**3))
+        sech_squared = 1 - tanh_term**2
+        
+        inner_derivative = sqrt_2_over_pi * (1 + 3 * 0.044715 * x**2)
+        
+        return 0.5 * (1 + tanh_term) + 0.5 * x * sech_squared * inner_derivative

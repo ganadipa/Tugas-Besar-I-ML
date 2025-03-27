@@ -78,3 +78,67 @@ class NormalInitializer(WeightInitializer):
         """
         rng = np.random.RandomState(self.seed)
         return rng.normal(loc=self.mean, scale=self.std, size=shape)
+
+class XavierInitializer(WeightInitializer):
+    """
+    Xavier/Glorot initialization for weights.
+    """
+    
+    def __init__(self, distribution='uniform', seed=None):
+        """
+        Args:
+            distribution: 'uniform' or 'normal' distribution to use
+            seed: Random seed for reproducibility
+        """
+        self.distribution = distribution
+        self.seed = seed
+    
+    def initialize(self, shape):
+        """
+        Initialize weights with Xavier/Glorot initialization.
+        
+        Args:
+            shape (tuple): Shape of the weight matrix/tensor to initialize.
+            For dense layers, shape is (fan_out, fan_in).
+        
+        Returns:
+            numpy.ndarray: Xavier-initialized weights.
+        """
+        fan_in = shape[1] if len(shape) >= 2 else shape[0]
+        fan_out = shape[0] if len(shape) >= 2 else shape[0]
+        
+        rng = np.random.RandomState(self.seed)
+        
+        if self.distribution == 'uniform':
+            limit = np.sqrt(6.0 / (fan_in + fan_out))
+            return rng.uniform(-limit, limit, size=shape)
+        else:
+            std = np.sqrt(2.0 / (fan_in + fan_out))
+            return rng.normal(0, std, size=shape)
+
+
+class HeInitializer(WeightInitializer):
+    """
+    He initialization for weights.
+    """
+    
+    def __init__(self, distribution='normal', seed=None):
+        """
+        Args:
+            distribution: 'uniform' or 'normal' distribution to use
+            seed: Random seed for reproducibility
+        """
+        self.distribution = distribution
+        self.seed = seed
+    
+    def initialize(self, shape):
+        fan_in = shape[1] if len(shape) >= 2 else shape[0]
+        
+        rng = np.random.RandomState(self.seed)
+        
+        if self.distribution == 'uniform':
+            limit = np.sqrt(6.0 / fan_in)
+            return rng.uniform(-limit, limit, size=shape)
+        else:
+            std = np.sqrt(2.0 / fan_in)
+            return rng.normal(0, std, size=shape)
