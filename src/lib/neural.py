@@ -92,7 +92,7 @@ class NeuralNetwork:
             self.bias_gradients.append(np.zeros_like(bias_weights))  
 
     
-    def show(self):
+    def neural_plot_networks(self):
         """Display the neural network architecture with better readability."""
         
         G = nx.DiGraph()
@@ -203,7 +203,7 @@ class NeuralNetwork:
         fig.show()
     
 
-    def plot_weights(self, layer_indices=None):
+    def neural_plot_weights(self, layer_indices=None):
         """Plot the distribution of weights for specified layers (starting from 1)."""
         
         if layer_indices is None:
@@ -231,7 +231,7 @@ class NeuralNetwork:
         plt.show()
 
 
-    def plot_gradients(self, layer_indices=None):
+    def neural_plot_gradients(self, layer_indices=None):
         """Plot the distribution of gradients for specified layers (starting from 1)."""
         
         if layer_indices is None:
@@ -257,28 +257,3 @@ class NeuralNetwork:
 
         plt.tight_layout()
         plt.show()
-    
-
-    def save(self, filepath: str) -> None:
-        """Save the neural network model to a file.
-        
-        Args:
-            filepath: Path where the model will be saved
-        """
-        
-        with open(filepath, 'wb') as f:
-            pickle.dump(self, f)
-
-    
-    def load(cls, filepath: str) -> 'NeuralNetwork':
-        """Load a neural network model from a file.
-        
-        Args:
-            filepath: Path to the saved model file
-            
-        Returns:
-            Loaded neural network model
-        """
-        
-        with open(filepath, 'rb') as f:
-            return pickle.load(f)

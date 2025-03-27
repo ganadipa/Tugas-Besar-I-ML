@@ -315,35 +315,49 @@ class FFNN:
         return self.network.loss_function.function(y.T, self.network.layers[-1].activated_nodes)
     
 
-    def save(self, filepath: str) -> None:
-        """Save the model to a file.
+    def save(self, file_path: str):
+        """Save the entire FFNN instance to a file.
         
         Args:
-            filepath: Path to save the model
+            file_path: Path to save
+        
         """
-        with open(filepath, 'wb') as f:
-            pickle.dump({
-                'network': self.network,
-                'learning_rate': self.learning_rate,
-                'loss_history': self.loss_history
-            }, f)
+        with open(file_path, 'wb') as f:
+            pickle.dump(self, f)
     
-    
-    def load(cls, filepath: str) -> 'FFNN':
-        """Load a model from a file.
+
+    def load(file_path: str) -> "FFNN":
+        """Load a saved FFNN instance from a file.
         
         Args:
-            filepath: Path to the saved model
-            
-        Returns:
-            Loaded FFNN model
+            file_path: Path to load from
         """
-        with open(filepath, 'rb') as f:
-            data = pickle.load(f)
-        
-        model = cls(data['network'], data['learning_rate'])
-        model.loss_history = data['loss_history']
-        return model
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+    
+
+    def plot_networks(self) -> None:
+        """Plot the neural network architecture.
+        """
+        self.network.neural_plot_networks()
+    
+
+    def plot_weights(self, layer_indices=None) -> None:
+        """Plot the weights of the neural network.
+
+        Args:
+            layer_indices: List of layer indices to plot weights
+        """
+        self.network.neural_plot_weights(layer_indices=layer_indices)    
+
+    def plot_gradients(self, layer_indices=None) -> None:
+        """Plot the gradients of the neural network.
+
+        Args:
+            layer_indices: List of layer indices to plot gradients
+        """
+        self.network.neural_plot_gradients(layer_indices=layer_indices)  
+
     
 
     def plot_loss_history(self) -> None:
