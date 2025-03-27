@@ -25,6 +25,7 @@ class FFNN:
             'train_loss': [],
             'val_loss': []
         }
+    
 
     def forward_prop(self, x_batch: np.ndarray) -> np.ndarray:
         """Perform forward propagation through the network.
@@ -34,12 +35,6 @@ class FFNN:
             
         Returns:
             Output predictions of shape (batch_size, output_features)
-            
-        Example:
-            # For a network with 2 input features and 1 output:
-            x_sample = np.array([[0.5, 0.8], [0.1, 0.2]])  # 2 samples, 2 features each
-            predictions = model.forward_prop(x_sample)
-            # predictions shape: (2, 1) e.g., [[0.75], [0.32]]
         """
         # Ensure x_batch is 2D
         if x_batch.ndim == 1:
@@ -58,7 +53,6 @@ class FFNN:
             prev_layer = self.network.layers[i-1]
             
             # Compute the weighted sum: weights * prev_activated_nodes + bias
-            # Shape becomes (current_layer_nodes, batch_size)
             weighted_sum = np.dot(self.network.weights[i-1], prev_layer.activated_nodes)
             
             # Add bias (broadcasting across batch)
@@ -70,18 +64,14 @@ class FFNN:
           
             # Apply activation function
             if current_layer.activation is not None:
-                # If activation is a class (not an instance), instantiate it
-                if isinstance(current_layer.activation, type):  
-                    current_layer.activation = current_layer.activation()  
-
                 current_layer.activated_nodes = current_layer.activation.function(weighted_sum)
-                
+
             else:
                 current_layer.activated_nodes = weighted_sum
         
-        # Return output layer activations transposed back to (batch_size, output_features)
         return self.network.layers[-1].activated_nodes.T
     
+
     def back_prop(self, x_batch: np.ndarray, y_batch: np.ndarray) -> float:
         """Perform backward propagation to compute gradients.
         
@@ -91,18 +81,6 @@ class FFNN:
             
         Returns:
             The computed loss value
-            
-        Example:
-            # For a batch of 10 samples with 5 input features and 3 output classes
-            x_batch = np.random.rand(10, 5)  # 10 samples, 5 features each
-            y_batch = np.zeros((10, 3))  # One-hot encoded targets for 3 classes
-            # Set the correct class for each sample
-            for i in range(10):
-                y_batch[i, np.random.randint(0, 3)] = 1
-                
-            # Perform backward propagation
-            loss = model.back_prop(x_batch, y_batch)
-            # loss is a float representing the loss for this batch
         """
         # Ensure inputs are properly shaped
         if x_batch.ndim == 1:
@@ -121,12 +99,11 @@ class FFNN:
             self.network.bias_gradients[i] = np.zeros_like(self.network.bias_weights[i])
         
         # Compute output layer error (delta)
-        # Shape: (output_features, batch_size)
         output_layer = self.network.layers[-1]
-        output_activations = output_layer.activated_nodes  # Shape: (output_features, batch_size)
+        output_activations = output_layer.activated_nodes
         
         # Transpose y_batch to match the shape of output_activations
-        y_batch_T = y_batch.T  # Shape: (output_features, batch_size)
+        y_batch_T = y_batch.T
         
         # Calculate loss
         loss = self.network.loss_function.function(y_batch_T, output_activations)
@@ -136,19 +113,14 @@ class FFNN:
 
 
         if (d_activation.ndim == 3): # softmax yea
-            # d_activation will be (output_sz, output_sz, batch_sz)
-            # d_loss shape: (output_sz, batch_sz)
-            # Expected output delta: (output_sz, batch_sz)
-
             output_sz, batch_sz = d_loss.shape
             delta = np.zeros((output_sz, batch_sz))
             
             for i in range(batch_sz):
-                # For each sample in the batch
                 # d_activation[:,:,i] is the Jacobian matrix (output_sz, output_sz)
                 # d_loss[:,i] is the loss gradient vector (output_sz,)
                 delta[:,i] = np.dot(d_activation[:,:,i], d_loss[:,i])
-    
+
         else: 
             delta = d_loss * d_activation
 
@@ -159,9 +131,6 @@ class FFNN:
             prev_layer = self.network.layers[l-1]
             
             # Compute weight gradients for this layer
-            # delta shape: (current_layer_size, batch_size)
-            # prev_activations shape: (prev_layer_size, batch_size)
-            # gradient shape: (current_layer_size, prev_layer_size)
             self.network.gradients[l-1] = np.dot(delta, prev_layer.activated_nodes.T) / batch_size
 
             # Compute bias gradients (average across batch)
@@ -170,9 +139,6 @@ class FFNN:
             # Backpropagate delta to previous layer (if not input layer)
             if l > 1:
                 # Compute delta for previous layer
-                # delta shape: (current_layer_size, batch_size)
-                # weights shape: (current_layer_size, prev_layer_size)
-                # new delta shape: (prev_layer_size, batch_size)
                 delta = np.dot(self.network.weights[l-1].T, delta)
                 d_actprev = prev_layer.activation.derivative(prev_layer.nodes)
                 
@@ -194,21 +160,15 @@ class FFNN:
         
         return loss
     
+
     def update_weights(self, learning_rate) -> None:
         """Update weights using gradient descent.
-        
-        Example:
-            # After computing gradients with back_prop
-            model.update_weights()
-            
-            # This will update all weights and biases in the network:
-            # For each weight matrix and bias vector:
-            # w_new = w_old - learning_rate * gradient
         """
         for i in range(len(self.network.weights)):
             self.network.weights[i] -= learning_rate * self.network.gradients[i]
             self.network.bias_weights[i] -= learning_rate * self.network.bias_gradients[i]
     
+
     def fit(self, 
         x_train: np.ndarray, 
         y_train: np.ndarray,
@@ -230,34 +190,6 @@ class FFNN:
             
         Returns:
             History dictionary containing training and validation loss
-            
-        Example:
-            # For a dataset with 1000 samples, 20 features, and 3 classes
-            x_train = np.random.rand(1000, 20)  # 1000 samples, 20 features each
-            y_train = np.zeros((1000, 3))       # One-hot encoded targets for 3 classes
-            # Set the correct class for each sample
-            for i in range(1000):
-                y_train[i, np.random.randint(0, 3)] = 1
-                
-            # Optional validation data
-            x_val = np.random.rand(200, 20)
-            y_val = np.zeros((200, 3))
-            for i in range(200):
-                y_val[i, np.random.randint(0, 3)] = 1
-                
-            # Train the model
-            history = model.fit(
-                x_train, 
-                y_train,
-                batch_size=32,
-                epochs=50,
-                validation_data=(x_val, y_val),
-                verbose=1
-            )
-            
-            # history is a dictionary with keys:
-            # - 'train_loss': list of training loss values for each epoch
-            # - 'val_loss': list of validation loss values for each epoch
         """
         # Ensure inputs are properly shaped
         if x_train.ndim == 1:
@@ -273,7 +205,6 @@ class FFNN:
             'val_loss': []
         }
         
-        # Training loop
         for epoch in range(epochs):
             start_time = time.time()
             
@@ -346,6 +277,7 @@ class FFNN:
                     print(f"Epoch {epoch+1}/{epochs} - {epoch_time:.2f}s - loss: {epoch_loss:.4f}")
         
         return self.loss_history
+    
 
     def predict(self, x: np.ndarray) -> np.ndarray:
         """Generate predictions for input samples.
@@ -355,24 +287,11 @@ class FFNN:
             
         Returns:
             Predictions of shape (n_samples, n_outputs)
-            
-        Example:
-            # For a dataset with 10 samples, 20 features, and a model with 3 output classes
-            x_test = np.random.rand(10, 20)
-            
-            # Make predictions
-            predictions = model.predict(x_test)
-            # predictions shape: (10, 3), e.g.:
-            # [[0.1, 0.7, 0.2],  # Probabilities for sample 1
-            #  [0.8, 0.1, 0.1],  # Probabilities for sample 2
-            #  ...]
-            
-            # For classification, get the class with highest probability
-            predicted_classes = np.argmax(predictions, axis=1)
-            # predicted_classes: [1, 0, ...]
         """
         return self.forward_prop(x)
 
+
+    # TODO: Implement the evaluate method
     def evaluate(self, x: np.ndarray, y: np.ndarray) -> float:
         """Evaluate the model on test data.
         
@@ -382,17 +301,6 @@ class FFNN:
             
         Returns:
             Loss value on test data
-            
-        Example:
-            # For a test dataset with 100 samples, 20 features, and 3 classes
-            x_test = np.random.rand(100, 20)
-            y_test = np.zeros((100, 3))       # One-hot encoded targets
-            for i in range(100):
-                y_test[i, np.random.randint(0, 3)] = 1
-                
-            # Evaluate the model
-            test_loss = model.evaluate(x_test, y_test)
-            # test_loss is a float, e.g., 0.18
         """
         # Ensure inputs are properly shaped
         if x.ndim == 1:
@@ -406,15 +314,12 @@ class FFNN:
         # Calculate loss
         return self.network.loss_function.function(y.T, self.network.layers[-1].activated_nodes)
     
+
     def save(self, filepath: str) -> None:
         """Save the model to a file.
         
         Args:
             filepath: Path to save the model
-            
-        Example:
-            # Save the trained model
-            model.save("my_mnist_model.pkl")
         """
         with open(filepath, 'wb') as f:
             pickle.dump({
@@ -423,7 +328,7 @@ class FFNN:
                 'loss_history': self.loss_history
             }, f)
     
-    @classmethod
+    
     def load(cls, filepath: str) -> 'FFNN':
         """Load a model from a file.
         
@@ -432,13 +337,6 @@ class FFNN:
             
         Returns:
             Loaded FFNN model
-            
-        Example:
-            # Load a previously saved model
-            loaded_model = FFNN.load("my_mnist_model.pkl")
-            
-            # Use the loaded model for predictions
-            test_predictions = loaded_model.predict(x_test)
         """
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
@@ -447,17 +345,9 @@ class FFNN:
         model.loss_history = data['loss_history']
         return model
     
+
     def plot_loss_history(self) -> None:
         """Plot the training and validation loss history.
-        
-        Example:
-            # After training the model
-            model.plot_loss_history()
-            
-            # This will display a graph showing:
-            # - Training loss curve (blue line)
-            # - Validation loss curve (if validation data was provided, orange line)
-            # The x-axis represents epochs, and the y-axis represents loss values
         """
         if not self.loss_history['train_loss']:
             print("No training history to plot.")

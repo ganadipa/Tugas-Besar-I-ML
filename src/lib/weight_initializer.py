@@ -45,7 +45,8 @@ class UniformInitializer(WeightInitializer):
         self.low = low
         self.high = high
         self.seed = seed
-        
+    
+
     def initialize(self, shape):
         """
         Initialize weights with random values from a uniform distribution.
@@ -71,7 +72,8 @@ class NormalInitializer(WeightInitializer):
         self.mean = mean
         self.std = np.sqrt(var)
         self.seed = seed
-        
+    
+    
     def initialize(self, shape):
         """
         Initialize weights with random values from a normal distribution.

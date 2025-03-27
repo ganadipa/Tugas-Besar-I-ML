@@ -7,6 +7,7 @@ from typing import List, Union
 import pickle
 import matplotlib.pyplot as plt
 import networkx as nx
+import plotly.graph_objects as go
 
 class NetworkLayer:
     """A layer in a neural network"""
@@ -26,7 +27,6 @@ class NetworkLayer:
         self.activation = activation
         self.nodes = np.zeros(node_count)
         self.activated_nodes = np.zeros(node_count)
-
 
 
 class NeuralNetwork:
@@ -70,6 +70,7 @@ class NeuralNetwork:
             
         self.initialize_weights(initialize_methods)
     
+
     def initialize_weights(self, initializers: List[WeightInitializer]):
         self.weights = []        
         self.gradients = []
@@ -90,174 +91,185 @@ class NeuralNetwork:
             self.gradients.append(np.zeros_like(weight_matrix))
             self.bias_gradients.append(np.zeros_like(bias_weights))  
 
+    
     def show(self):
-        """Display the neural network architecture as a graph.
+        """Display the neural network architecture with better readability."""
         
-        This method visualizes the network structure, including all layers,
-        connections between neurons, weights, and gradients.
-        """
-        
-        # Create a directed graph
         G = nx.DiGraph()
-        
-        # Define positions for all neurons
         pos = {}
+
+        layer_labels = ["Input Layer"] + [f"Hidden Layer {i}" for i in range(1, len(self.layers) - 1)] + ["Output Layer"]
         neuron_labels = {}
+        highest_neuron_positions = {}
+
+        edge_traces = []
+        node_traces = []
+
+        # Colors per layer
+        layer_colors = {
+            "Input Layer": "blue",
+            "Hidden Layer": "green",
+            "Output Layer": "red"
+        }
+
+        max_neurons = max(len(layer.nodes) for layer in self.layers)  # Find the largest layer
         
-        # Add nodes for each layer
+        # Adjust horizontal spacing
+        x_spacing = 2
+
+        # Process Nodes
         for layer_idx, layer in enumerate(self.layers):
             n_neurons = len(layer.nodes)
+            layer_height = max_neurons / n_neurons  # Normalize spacing
+            highest_y = -float("inf")
+
             for neuron_idx in range(n_neurons):
                 node_id = f"L{layer_idx}_{neuron_idx}"
                 G.add_node(node_id)
-                pos[node_id] = (layer_idx, neuron_idx - n_neurons/2)
-                
-                if layer_idx == 0:
-                    neuron_labels[node_id] = f"Input {neuron_idx}"
-                elif layer_idx == len(self.layers) - 1:
-                    neuron_labels[node_id] = f"Output {neuron_idx}"
-                else:
-                    neuron_labels[node_id] = f"H{layer_idx}_{neuron_idx}"
-        
-        # Add edges between neurons
-        edge_labels = {}
+
+                neuron_name = f"H{layer_idx}_{neuron_idx}" if 0 < layer_idx < len(self.layers) - 1 else f"I{neuron_idx}" if layer_idx == 0 else f"O{neuron_idx}"
+                neuron_labels[node_id] = neuron_name
+
+                x_pos = layer_idx * x_spacing
+                y_pos = -(neuron_idx * layer_height) + (n_neurons / 2)  # Reversed ordering, 0 at the top
+
+                pos[node_id] = (x_pos, y_pos)
+
+                highest_y = max(highest_y, y_pos)
+
+                node_traces.append(go.Scatter(
+                    x=[x_pos], y=[y_pos],
+                    mode="markers+text",
+                    text=[neuron_name], textposition="bottom center",
+                    marker=dict(size=20, color=layer_colors.get(layer_labels[layer_idx], "gray")),
+                    hoverinfo="text",
+                    hovertext=f"Neuron: {neuron_name}"
+                ))
+
+            highest_neuron_positions[layer_idx] = (x_pos, highest_y + 2)
+
+        # Process Edges
         for layer_idx in range(len(self.layers) - 1):
             for prev_idx in range(len(self.layers[layer_idx].nodes)):
                 for next_idx in range(len(self.layers[layer_idx + 1].nodes)):
                     prev_node = f"L{layer_idx}_{prev_idx}"
                     next_node = f"L{layer_idx + 1}_{next_idx}"
-                    
+
+                    prev_name = neuron_labels[prev_node]
+                    next_name = neuron_labels[next_node]
+
                     weight = self.weights[layer_idx][next_idx, prev_idx]
                     gradient = self.gradients[layer_idx][next_idx, prev_idx]
-                    
+                    activation_function = self.layers[layer_idx + 1].activation.__class__.__name__
+
+                    edge_name = f"{prev_name} → {next_name}"
+
                     G.add_edge(prev_node, next_node)
-                    edge_labels[(prev_node, next_node)] = f"W: {weight:.2f}\nG: {gradient:.2f}"
+
+                    x0, y0 = pos[prev_node]
+                    x1, y1 = pos[next_node]
+
+                    # Edge Line (Fix: Add midpoints for better hover interaction)
+                    edge_traces.append(go.Scatter(
+                        x=[x0, (x0 + x1) / 2, x1],  # Add an intermediate point
+                        y=[y0, (y0 + y1) / 2, y1],
+                        mode="lines+markers",
+                        line=dict(width=1.5, color="rgba(100,100,100,0.6)"),
+                        marker=dict(size=5, opacity=0),  # Invisible markers at edge midpoints
+                        hoverinfo="text",
+                        hovertext=f"Edge: {edge_name}<br>Weight: {weight:.3f}<br>Gradient: {gradient:.3f}<br>Activation: {activation_function}"
+                    ))
+
+        # Layer Labels
+        annotations = []
+        for layer_idx, layer_name in enumerate(layer_labels):
+            x, y = highest_neuron_positions[layer_idx]
+            annotations.append(
+                dict(x=x, y=y, text=layer_name, showarrow=False, font=dict(size=16, color="black"))
+            )
+
+        fig = go.Figure(data=edge_traces + node_traces)
         
-        # Create the plot
-        plt.figure(figsize=(12, 8))
-        nx.draw(G, pos, with_labels=False, node_size=700, node_color='skyblue', 
-                font_weight='bold', arrowsize=20, edge_color='gray')
-        
-        nx.draw_networkx_labels(G, pos, labels=neuron_labels, font_size=10)
-        
-        # Draw edge labels (optional, can be messy for large networks)
-        if len(self.layers) < 4 and max([len(l.nodes) for l in self.layers]) < 8:
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
-        
-        # Add bias weights visualization
-        for layer_idx in range(len(self.layers) - 1):
-            for next_idx in range(len(self.layers[layer_idx + 1].nodes)):
-                next_node = f"L{layer_idx + 1}_{next_idx}"
-                bias_value = self.bias_weights[layer_idx][next_idx]
-                bias_gradient = self.bias_gradients[layer_idx][next_idx]
-                
-                # Add a small text annotation for bias
-                x, y = pos[next_node]
-                plt.text(x - 0.1, y + 0.2, f"B: {bias_value:.2f}\nBG: {bias_gradient:.2f}", 
-                        fontsize=8, bbox=dict(facecolor='yellow', alpha=0.2))
-        
-        plt.title('Neural Network Architecture')
-        plt.axis('off')
-        plt.tight_layout()
-        plt.show()
+        fig.update_layout(
+            title="Neural Network Architecture",
+            showlegend=False,
+            hovermode="closest",
+            annotations=annotations,
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor="rgba(240,240,240,0.8)"
+        )
+
+        fig.show()
+    
 
     def plot_weights(self, layer_indices=None):
-        """Plot the distribution of weights for specified layers.
-        
-        Args:
-            layer_indices: List of indices indicating which layers to plot.
-                        If None, all layers are plotted.
-                        
-        Example:
-            # Plot weights for the first and second layers
-            model.plot_weights([0, 1])
-            
-            # Plot weights for all layers
-            model.plot_weights()
-        """
-
+        """Plot the distribution of weights for specified layers (starting from 1)."""
         
         if layer_indices is None:
-            layer_indices = range(len(self.weights))
+            layer_indices = range(1, len(self.weights) + 1)  # Start from 1
         
         n_layers = len(layer_indices)
         fig, axes = plt.subplots(1, n_layers, figsize=(n_layers * 4, 4))
         
-        # Handle case with only one layer
         if n_layers == 1:
             axes = [axes]
         
         for i, layer_idx in enumerate(layer_indices):
-            if layer_idx >= len(self.weights):
+            if layer_idx < 1 or layer_idx > len(self.weights):  # Ensure within range
                 print(f"Warning: Layer index {layer_idx} out of range")
                 continue
-                
-            weights = self.weights[layer_idx].flatten()
+
+            weights = self.weights[layer_idx - 1].flatten()  # Adjust for 1-based index
             axes[i].hist(weights, bins=30, alpha=0.7)
-            axes[i].set_title(f"Layer {layer_idx+1} Weights")
+            axes[i].set_title(f"Layer {layer_idx} Weights")  # Keep 1-based index in title
             axes[i].set_xlabel("Weight Value")
             axes[i].set_ylabel("Frequency")
             axes[i].grid(alpha=0.3)
-        
+
         plt.tight_layout()
         plt.show()
 
-    def plot_gradients(self, layer_indices=None):
-        """Plot the distribution of gradients for specified layers.
-        
-        Args:
-            layer_indices: List of indices indicating which layers to plot.
-                        If None, all layers are plotted.
-                        
-        Example:
-            # Plot gradients for the first and second layers
-            model.plot_gradients([0, 1])
-            
-            # Plot gradients for all layers
-            model.plot_gradients()
-        """
 
+    def plot_gradients(self, layer_indices=None):
+        """Plot the distribution of gradients for specified layers (starting from 1)."""
         
         if layer_indices is None:
-            layer_indices = range(len(self.gradients))
+            layer_indices = range(1, len(self.gradients) + 1)  # Start from 1
         
         n_layers = len(layer_indices)
         fig, axes = plt.subplots(1, n_layers, figsize=(n_layers * 4, 4))
         
-        # Handle case with only one layer
         if n_layers == 1:
             axes = [axes]
         
         for i, layer_idx in enumerate(layer_indices):
-            if layer_idx >= len(self.gradients):
+            if layer_idx < 1 or layer_idx > len(self.gradients):  # Ensure within range
                 print(f"Warning: Layer index {layer_idx} out of range")
                 continue
-                
-            gradients = self.gradients[layer_idx].flatten()
+
+            gradients = self.gradients[layer_idx - 1].flatten()  # Adjust for 1-based index
             axes[i].hist(gradients, bins=30, alpha=0.7)
-            axes[i].set_title(f"Layer {layer_idx+1} Gradients")
+            axes[i].set_title(f"Layer {layer_idx} Gradients")  # Keep 1-based index in title
             axes[i].set_xlabel("Gradient Value")
             axes[i].set_ylabel("Frequency")
             axes[i].grid(alpha=0.3)
-        
+
         plt.tight_layout()
         plt.show()
     
+
     def save(self, filepath: str) -> None:
         """Save the neural network model to a file.
         
         Args:
             filepath: Path where the model will be saved
-            
-        Example:
-            # Save the current model
-            model.save("my_neural_network.pkl")
         """
         
         with open(filepath, 'wb') as f:
             pickle.dump(self, f)
 
-    @classmethod
+    
     def load(cls, filepath: str) -> 'NeuralNetwork':
         """Load a neural network model from a file.
         
@@ -266,10 +278,6 @@ class NeuralNetwork:
             
         Returns:
             Loaded neural network model
-            
-        Example:
-            # Load a saved model
-            loaded_model = NeuralNetwork.load("my_neural_network.pkl")
         """
         
         with open(filepath, 'rb') as f:
