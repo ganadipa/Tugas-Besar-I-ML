@@ -406,6 +406,13 @@ def evaluate_model(model, X, y_onehot) -> None:
     print(f"{'Recall (macro)':<20} {recall:.10f}")
     print(f"{'F1 Score (macro)':<20} {f1:.10f}")
     print("-" * 30)
+    return {
+        'accuracy': accuracy,
+        'precision': precision,
+        'recall': recall,
+        'f1': f1
+        
+    }
 
 
 def plot_training_loss(history: Dict[str, List[float]], title: str = "Training History") -> None:
