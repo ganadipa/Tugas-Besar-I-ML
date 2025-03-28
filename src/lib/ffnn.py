@@ -415,7 +415,7 @@ def plot_training_loss(history: Dict[str, List[float]], title: str = "Training H
         history: Dictionary containing 'train_loss' and 'val_loss'
         title: Title of the plot
     """
-    plt.figure(figsize=(10, 5))
+    plt.figure(figsize=(8, 6))
     plt.plot(history['train_loss'], label='Training Loss')
     if 'val_loss' in history and history['val_loss']:
         plt.plot(history['val_loss'], label='Validation Loss')
