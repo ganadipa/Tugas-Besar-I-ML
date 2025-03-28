@@ -9,6 +9,9 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+We tried using Python 3.11 and it didn't work, so install Python 3.12 (or later) if you don't have it yet. 
+
 ## Folder Structure
 
 The following is the folder structure.
@@ -37,7 +40,7 @@ model = FFNN(NeuralNetwork(
     node_counts = <Give a list of node counts>,
     activations = <Give a list of activation class instances>,
     loss_function = <Instance of a Loss Function Class>,
-    initialize_methods = <Instance of a Weight Initializer Class>
+    initialize_methods = <Give a list of Weight Initializer Istances> OR a single instance
 ))
 ```
 
