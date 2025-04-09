@@ -11,9 +11,10 @@ from sklearn.preprocessing import label_binarize
 class FFNN:
     
     network: NeuralNetwork
+    regularization_method: str
     loss_history: Dict[str, List[float]]
 
-    def __init__(self, network: NeuralNetwork):
+    def __init__(self, network: NeuralNetwork, regularization_method:str=None):
         """Initialize a Feed-Forward Neural Network.
         
         Args:
@@ -25,6 +26,8 @@ class FFNN:
             'train_loss': [],
             'val_loss': []
         }
+
+        self.regularization_method = regularization_method
     
 
     def forward_prop(self, x_batch: np.ndarray) -> np.ndarray:
@@ -72,7 +75,7 @@ class FFNN:
         return self.network.layers[-1].activated_nodes.T
     
 
-    def back_prop(self, x_batch: np.ndarray, y_batch: np.ndarray) -> float:
+    def back_prop(self, x_batch: np.ndarray, y_batch: np.ndarray, learning_rate: float) -> float:
         """Perform backward propagation to compute gradients.
         
         Args:
@@ -101,6 +104,7 @@ class FFNN:
         # Compute output layer error (delta)
         output_layer = self.network.layers[-1]
         output_activations = output_layer.activated_nodes
+            
         
         # Transpose y_batch to match the shape of output_activations
         y_batch_T = y_batch.T
@@ -108,7 +112,13 @@ class FFNN:
         # Calculate loss
         loss = self.network.loss_function.function(y_batch_T, output_activations)
         
-        d_loss = self.network.loss_function.derivative(y_batch_T, output_activations)
+        reg_const = 1
+        if self.regularization_method == "L1":
+            reg_const = learning_rate * sum(np.sum(np.abs(w)) for w in self.network.weights)
+        if self.regularization_method == "L2":
+            reg_const = learning_rate * sum(np.sum(np.square(w)) for w in self.network.weights)
+        
+        d_loss = reg_const * self.network.loss_function.derivative(y_batch_T, output_activations)
         d_activation = output_layer.activation.derivative(output_layer.nodes)
 
 
@@ -234,7 +244,7 @@ class FFNN:
                 batch_y = y_shuffled[start_idx:end_idx]
                 
                 # Forward and backward passes
-                batch_loss = self.back_prop(batch_x, batch_y)
+                batch_loss = self.back_prop(batch_x, batch_y, learning_rate)
                 
                 # Update weights
                 self.update_weights(learning_rate)
